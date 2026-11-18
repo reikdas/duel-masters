@@ -57,6 +57,7 @@ type Match struct {
 
 	eventloop *EventLoop
 	system    *MatchSystem
+	onPause   func(Pause)
 
 	hostUsername  string
 	guestUsername string
@@ -72,6 +73,44 @@ func (m *Match) SetSeed(seed int64) {
 // which is fine because a match runs its game logic on one goroutine at a time.
 func (m *Match) Rand() *rand.Rand {
 	return m.rng
+}
+
+// Pause tells a program driving the match that it has stopped to wait for a
+// player.
+type Pause struct {
+	// Player has to act next. It is nil when the game is over.
+	Player *Player
+
+	// Prompt is true when a prompt is open for Player, such as choosing which
+	// mana to tap or whether to block. Otherwise the match is idle and Player,
+	// the active player, chooses the next move of the turn: charge mana, play
+	// a card, attack, use a tap ability or end the turn.
+	Prompt bool
+}
+
+// OnPause registers f to be called every time the match stops to wait for a
+// player, so that a program playing both sides knows when to send the next
+// message. Messages sent at any other time can be lost, because the event loop
+// holds at most one pending message and drops the rest.
+//
+// f runs on the match's goroutine and must return without waiting on the
+// match. Register it before sending the first message.
+func (m *Match) OnPause(f func(Pause)) {
+	m.onPause = f
+	m.eventloop.idle = func() {
+		if m.IsEnding() {
+			f(Pause{})
+			return
+		}
+		f(Pause{Player: m.CurrentPlayer().Player})
+	}
+}
+
+// StartOnEventLoop starts the match on its event loop, as the website does
+// after the coin toss, rather than on the caller's goroutine. A pause hook
+// then reports the first decision of the game like any other.
+func (m *Match) StartOnEventLoop() {
+	m.eventloop.schedule(m.Start, SequentialEvent)
 }
 
 // Name just returns "match", obligatory for a hub

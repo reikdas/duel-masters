@@ -24,8 +24,9 @@ type TestScenario struct {
 type Option func(*scenarioConfig)
 
 type scenarioConfig struct {
-	deck []string
-	seed *int64
+	deck   []string
+	seed   *int64
+	pauses chan<- match.Pause
 }
 
 type DeckEntry struct {
@@ -36,6 +37,15 @@ type DeckEntry struct {
 func WithSeed(seed int64) Option {
 	return func(opts *scenarioConfig) {
 		opts.seed = &seed
+	}
+}
+
+// WithPauses sends every pause of the match to pauses. The match is started on
+// its event loop, so New returns before the game has begun and the first pause
+// reports the first decision.
+func WithPauses(pauses chan<- match.Pause) Option {
+	return func(opts *scenarioConfig) {
+		opts.pauses = pauses
 	}
 }
 
@@ -89,7 +99,12 @@ func New(options ...Option) *TestScenario {
 	p1.Ready = true
 	p2.Ready = true
 
-	m.Start()
+	if config.pauses != nil {
+		m.OnPause(func(p match.Pause) { config.pauses <- p })
+		m.StartOnEventLoop()
+	} else {
+		m.Start()
+	}
 
 	return &TestScenario{
 		Match: m,

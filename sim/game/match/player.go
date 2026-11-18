@@ -894,6 +894,10 @@ func (p *Player) NextAction() PlayerAction {
 		panic(matchDisposed{})
 	}
 
+	if p.match.onPause != nil {
+		p.match.onPause(Pause{Player: p, Prompt: true})
+	}
+
 	action, ok := <-p.Action
 
 	if !ok {

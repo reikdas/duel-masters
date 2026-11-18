@@ -21,6 +21,10 @@ type EventLoop struct {
 	running atomic.Bool
 	events  chan func()
 	exit    chan struct{}
+
+	// idle, when set, runs each time the loop has finished an event and is
+	// ready for the next one.
+	idle func()
 }
 
 func NewEventLoop() *EventLoop {
@@ -60,6 +64,12 @@ func (el *EventLoop) start() {
 			// drain the channel
 			for len(el.events) > 0 {
 				<-el.events
+			}
+
+			// Signal only after draining. A message sent in response to the
+			// signal would otherwise be drained and lost.
+			if el.idle != nil {
+				el.idle()
 			}
 		}
 	}
