@@ -123,6 +123,5 @@ func bodaciousGiantCanBeAttackedBy(card *match.Card, attacker *match.Card) bool 
 		return false
 	}
 
-	return card.HasCondition(cnd.TreatedAsTapped) ||
-		(!card.HasCondition(cnd.CantBeAttacked) && (card.Tapped || attacker.HasCondition(cnd.AttackUntapped)))
+	return fx.CanBeAttackedBy(card, attacker)
 }

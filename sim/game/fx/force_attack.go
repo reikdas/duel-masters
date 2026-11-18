@@ -6,10 +6,10 @@ import (
 	"fmt"
 )
 
-// canBeForcedToAttack reports whether card's controller has a legal attack
+// CanBeForcedToAttack reports whether card's controller has a legal attack
 // available with it right now, on their own turn, which is what "attacks if
 // able" turns on.
-func canBeForcedToAttack(card *match.Card, m *match.Match) bool {
+func CanBeForcedToAttack(card *match.Card, m *match.Match) bool {
 
 	if !m.IsPlayerTurn(card.Player) || HasSummoningSickness(card) || card.Tapped {
 		return false
@@ -24,7 +24,7 @@ func canBeForcedToAttack(card *match.Card, m *match.Match) bool {
 		attackableCreatures := FindFilter(
 			m.Opponent(card.Player),
 			match.BATTLEZONE,
-			func(c *match.Card) bool { return c.Tapped || card.HasCondition(cnd.AttackUntapped) })
+			func(c *match.Card) bool { return CanBeAttackedBy(c, card) })
 
 		if len(attackableCreatures) == 0 {
 			return false
@@ -51,7 +51,7 @@ func ForceAttack(card *match.Card, ctx *match.Context) {
 
 	if event, ok := ctx.Event.(*match.TapAbility); ok {
 
-		if event.CardID != card.ID || !canBeForcedToAttack(card, ctx.Match) {
+		if event.CardID != card.ID || !CanBeForcedToAttack(card, ctx.Match) {
 			return
 		}
 
@@ -62,7 +62,7 @@ func ForceAttack(card *match.Card, ctx *match.Context) {
 
 	}
 
-	if _, ok := ctx.Event.(*match.EndTurnEvent); ok && canBeForcedToAttack(card, ctx.Match) {
+	if _, ok := ctx.Event.(*match.EndTurnEvent); ok && CanBeForcedToAttack(card, ctx.Match) {
 
 		ctx.Match.WarnPlayer(card.Player, fmt.Sprintf("%s must attack before you can end your turn", card.Name))
 		ctx.InterruptFlow()

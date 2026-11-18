@@ -14,6 +14,9 @@ const (
 	slimeVeilAllyUID   = "af3bc221-1cc2-4f58-83ea-2673ac2c66c5" // Immortal Baron, Vorg (2000, no ability)
 	slimeVeilTapperUID = "a808b98c-2de7-412b-970c-a3b925bf43c2" // Deklowaz, the Terminator (tap ability, no target needed)
 	slimeVeilSetupSrc  = "slime_veil_test_setup"
+
+	poltalesterUID = "b1651408-0b72-41d1-ab38-e7e65cac7d8d" // Poltalester, the Spydroid (can't attack players)
+	koocPollonUID  = "f63d041c-e752-4f5c-a3ab-80f45241b249" // Kooc Pollon (can't be attacked)
 )
 
 func TestSlimeVeil(t *testing.T) {
@@ -46,6 +49,23 @@ func TestSlimeVeil(t *testing.T) {
 		ally.Tapped = true
 		require.NoError(t, scn.ActionEndTurn(opponent))
 		assert.True(t, scn.Match.IsPlayerTurn(player.Player))
+	})
+
+	t.Run("a creature with no legal attack does not hold up the turn", func(t *testing.T) {
+		scn, player, opponent := setupDuel(t)
+		putCardInBattlezone(t, scn, opponent.Player, poltalesterUID, slimeVeilSetupSrc)
+		untouchable := putCardInBattlezone(t, scn, player.Player, koocPollonUID, slimeVeilSetupSrc)
+		passTurnToSelf(t, scn, player, opponent)
+
+		castSpell(t, scn, player, slimeVeilUID)
+		require.NoError(t, scn.ActionEndTurn(player))
+		require.False(t, scn.Match.IsPlayerTurn(player.Player))
+
+		// Poltalester can't attack players, and the only tapped creature it
+		// could attack can't be attacked, so it is unable to attack.
+		untouchable.Tapped = true
+		require.NoError(t, scn.ActionEndTurn(opponent))
+		assert.True(t, scn.Match.IsPlayerTurn(player.Player), "the turn ends because Poltalester is unable to attack")
 	})
 
 	t.Run("the opponent cannot use a tap ability instead of attacking", func(t *testing.T) {

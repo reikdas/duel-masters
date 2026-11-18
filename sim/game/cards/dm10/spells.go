@@ -311,26 +311,9 @@ func InfernalCommand(c *match.Card) {
 				ctx2.Match.Opponent(card.Player),
 				match.BATTLEZONE,
 			).Map(func(c *match.Card) {
-				if _, ok := ctx2.Event.(*match.EndTurnEvent); ok && c.Zone == match.BATTLEZONE {
-					if ctx2.Match.IsPlayerTurn(c.Player) && !fx.HasSummoningSickness(c) && !c.Tapped {
-						if c.HasCondition(cnd.CantAttackPlayers) {
-							if c.HasCondition(cnd.CantAttackCreatures) {
-								return
-							}
-
-							attackableCreatures := fx.FindFilter(
-								ctx2.Match.Opponent(c.Player),
-								match.BATTLEZONE,
-								func(x *match.Card) bool { return x.Tapped || c.HasCondition(cnd.AttackUntapped) })
-
-							if len(attackableCreatures) == 0 {
-								return
-							}
-						}
-
-						ctx2.Match.WarnPlayer(c.Player, fmt.Sprintf("%s must attack before you can end your turn", c.Name))
-						ctx2.InterruptFlow()
-					}
+				if _, ok := ctx2.Event.(*match.EndTurnEvent); ok && c.Zone == match.BATTLEZONE && fx.CanBeForcedToAttack(c, ctx2.Match) {
+					ctx2.Match.WarnPlayer(c.Player, fmt.Sprintf("%s must attack before you can end your turn", c.Name))
+					ctx2.InterruptFlow()
 				}
 			})
 		})

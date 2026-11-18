@@ -1441,6 +1441,14 @@ func LookTop4Put1IntoHandReorderRestOnBottomDeck(card *match.Card, ctx *match.Co
 	})
 }
 
+// CanBeAttackedBy reports whether attacker may choose target when it attacks a
+// creature. The attack prompt and every "attacks if able" check must agree on
+// this, or a player can be required to make an attack the prompt won't offer.
+func CanBeAttackedBy(target *match.Card, attacker *match.Card) bool {
+	return target.HasCondition(cnd.TreatedAsTapped) ||
+		(!target.HasCondition(cnd.CantBeAttacked) && (target.Tapped || attacker.HasCondition(cnd.AttackUntapped)))
+}
+
 func CanAttack(card *match.Card) bool {
 	return !HasSummoningSickness(card) && !card.Tapped && (!card.HasCondition(cnd.CantAttackPlayers) || !card.HasCondition(cnd.CantAttackCreatures))
 }

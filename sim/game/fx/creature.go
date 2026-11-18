@@ -236,7 +236,7 @@ func Creature(card *match.Card, ctx *match.Context) {
 
 		// Add attackable creatures
 		for _, c := range battlezone {
-			if c.HasCondition(cnd.TreatedAsTapped) || (!c.HasCondition(cnd.CantBeAttacked) && (c.Tapped || card.HasCondition(cnd.AttackUntapped))) {
+			if CanBeAttackedBy(c, card) {
 				event.AttackableCreatures = append(event.AttackableCreatures, c)
 			}
 		}
