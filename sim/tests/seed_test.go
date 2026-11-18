@@ -58,3 +58,27 @@ func TestSeedReproducesShuffle(t *testing.T) {
 		assert.NotEqual(t, openingState(t, 42), openingState(t, 43))
 	})
 }
+
+type orderProbe struct{}
+
+func TestPersistentEffectsRunInOrderApplied(t *testing.T) {
+	scn := scenario.New()
+	defer scn.Match.Dispose()
+
+	ran := []int{}
+	for i := range 8 {
+		scn.Match.ApplyPersistentEffect(func(ctx *match.Context, exit func()) {
+			if _, ok := ctx.Event.(*orderProbe); ok {
+				ran = append(ran, i)
+			}
+		})
+	}
+
+	// With eight entries, random map iteration would almost never produce
+	// the same order twenty times in a row.
+	for range 20 {
+		ran = ran[:0]
+		scn.Match.HandleFx(match.NewContext(scn.Match, &orderProbe{}))
+		assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7}, ran)
+	}
+}

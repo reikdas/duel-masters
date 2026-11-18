@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -32,6 +33,7 @@ type Match struct {
 	Player2           *PlayerReference                         `json:"-"`
 	spectators        internal.ConcurrentDictionary[Spectator] `json:"-"`
 	persistentEffects map[int]PersistentEffect
+	persistentSeq     int
 	rng               *rand.Rand
 	Turn              byte `json:"-"`
 	Started           bool `json:"started"`
@@ -774,10 +776,21 @@ func (m *Match) HandleFx(ctx *Context) {
 
 	}
 
-	// Handle persistent effects
-	for _, fx := range m.persistentEffects {
+	// Handle persistent effects in the order they were applied. Map iteration
+	// order is random, which would make games with the same seed diverge.
+	keys := make([]int, 0, len(m.persistentEffects))
+	for key := range m.persistentEffects {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+
+	for _, key := range keys {
 		if m.IsEnding() {
 			return
+		}
+		fx, ok := m.persistentEffects[key]
+		if !ok {
+			continue
 		}
 		fx.effect(ctx, fx.exit)
 	}

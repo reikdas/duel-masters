@@ -1,7 +1,5 @@
 package match
 
-var seqID = 1
-
 type PersistentHandlerFunc func(ctx2 *Context, exit func())
 
 type PersistentEffect struct {
@@ -10,7 +8,8 @@ type PersistentEffect struct {
 }
 
 func (match *Match) ApplyPersistentEffect(f PersistentHandlerFunc) {
-	key := seqID
+	match.persistentSeq++
+	key := match.persistentSeq
 
 	fx := PersistentEffect{
 		exit:   func() { match.RemovePersistentEffect(key) },
@@ -18,8 +17,6 @@ func (match *Match) ApplyPersistentEffect(f PersistentHandlerFunc) {
 	}
 
 	match.persistentEffects[key] = fx
-
-	seqID++
 }
 
 func (match *Match) RemovePersistentEffect(id int) {
