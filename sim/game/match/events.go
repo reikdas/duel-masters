@@ -193,3 +193,10 @@ type TapAbility struct {
 	// attack step. See AttackPlayer.Confirmed.
 	Confirmed bool
 }
+
+// RefreshEvent is dispatched once each action has fully resolved, before the
+// match waits for the next one. It carries nothing. Persistent effects only
+// recompute what they grant, such as power or speed attacker, when an event
+// happens, so without it the state read between actions could be one event
+// out of date.
+type RefreshEvent struct{}

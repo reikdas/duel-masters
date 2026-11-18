@@ -22,6 +22,9 @@ type EventLoop struct {
 	events  chan func()
 	exit    chan struct{}
 
+	// afterEvent, when set, runs as its own event after each event.
+	afterEvent func()
+
 	// idle, when set, runs each time the loop has finished an event and is
 	// ready for the next one.
 	idle func()
@@ -64,6 +67,12 @@ func (el *EventLoop) start() {
 			// drain the channel
 			for len(el.events) > 0 {
 				<-el.events
+			}
+
+			// Run after draining, so that a message arriving during this extra
+			// work is kept for the next event rather than drained.
+			if el.afterEvent != nil {
+				el.process(el.afterEvent)
 			}
 
 			// Signal only after draining. A message sent in response to the

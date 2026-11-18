@@ -106,6 +106,20 @@ func (m *Match) OnPause(f func(Pause)) {
 	}
 }
 
+// refresh lets persistent effects catch up once an action has resolved. See
+// RefreshEvent.
+func (m *Match) refresh() {
+	if !m.Started || m.IsEnding() {
+		return
+	}
+
+	m.HandleFx(NewContext(m, &RefreshEvent{}))
+
+	if !m.IsEnding() {
+		m.BroadcastState()
+	}
+}
+
 // StartOnEventLoop starts the match on its event loop, as the website does
 // after the coin toss, rather than on the caller's goroutine. A pause hook
 // then reports the first decision of the game like any other.

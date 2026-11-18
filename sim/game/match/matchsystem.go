@@ -122,6 +122,8 @@ func (s *MatchSystem) NewMatch(matchName string, hostID string, hostUsername str
 		guestUsername: guestUsername,
 	}
 
+	m.eventloop.afterEvent = m.refresh
+
 	go m.eventloop.start()
 
 	s.Matches.Add(id, m)
