@@ -25,11 +25,18 @@ type Option func(*scenarioConfig)
 
 type scenarioConfig struct {
 	deck []string
+	seed *int64
 }
 
 type DeckEntry struct {
 	UID   string
 	Count int
+}
+
+func WithSeed(seed int64) Option {
+	return func(opts *scenarioConfig) {
+		opts.seed = &seed
+	}
 }
 
 func WithDeck(entries ...DeckEntry) Option {
@@ -71,6 +78,10 @@ func New(options ...Option) *TestScenario {
 	p2Conn := NewMockConnection()
 	p2 := match.NewPlayer(m, 2)
 	m.Player2 = match.NewPlayerReference(p2, server.NewSocket(p2Conn, m, "2", "Player2"))
+
+	if config.seed != nil {
+		m.SetSeed(*config.seed)
+	}
 
 	p1.CreateDeck(cloneDeck(config.deck))
 	p2.CreateDeck(cloneDeck(config.deck))

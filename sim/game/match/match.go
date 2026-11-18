@@ -32,6 +32,7 @@ type Match struct {
 	Player2           *PlayerReference                         `json:"-"`
 	spectators        internal.ConcurrentDictionary[Spectator] `json:"-"`
 	persistentEffects map[int]PersistentEffect
+	rng               *rand.Rand
 	Turn              byte `json:"-"`
 	Started           bool `json:"started"`
 	Visible           bool `json:"visible"`
@@ -57,6 +58,18 @@ type Match struct {
 
 	hostUsername  string
 	guestUsername string
+}
+
+// SetSeed makes the match's shuffles, coin tosses and random card effects
+// reproducible. Call it before Start.
+func (m *Match) SetSeed(seed int64) {
+	m.rng = rand.New(rand.NewSource(seed))
+}
+
+// Rand is the match's source of randomness. It is not safe for concurrent use,
+// which is fine because a match runs its game logic on one goroutine at a time.
+func (m *Match) Rand() *rand.Rand {
+	return m.rng
 }
 
 // Name just returns "match", obligatory for a hub
@@ -1048,7 +1061,7 @@ func (m *Match) CoinToss() {
 	var PlayerToAwaitToss *PlayerReference
 
 	if m.PlayerSelectingToss == "" {
-		if rand.Intn(100) >= 50 {
+		if m.rng.Intn(100) >= 50 {
 			m.PlayerSelectingToss = m.Player2.UID
 
 			PlayerToChooseToss = m.Player2
@@ -1579,7 +1592,7 @@ func (m *Match) Parse(s *server.Socket, data []byte) {
 								m.Chat("Server", fmt.Sprintf("%s has called tails", s.User.Username))
 							}
 
-							var outcome = rand.Intn(100)
+							var outcome = m.rng.Intn(100)
 							var heads = (outcome >= 50)
 							var wasTossDecisionCorrect bool
 

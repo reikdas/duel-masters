@@ -99,6 +99,7 @@ func (s *MatchSystem) NewMatch(matchName string, hostID string, hostUsername str
 		StartingPlayerID:  startingPlayerID,
 		spectators:        internal.NewConcurrentDictionary[Spectator](),
 		persistentEffects: make(map[int]PersistentEffect),
+		rng:               rand.New(rand.NewSource(rand.Int63())),
 		Turn:              1,
 
 		PlayerSelectingToss: "",

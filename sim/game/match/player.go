@@ -5,7 +5,6 @@ import (
 	"duel-masters/server"
 	"errors"
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -286,7 +285,7 @@ func (p *Player) ShuffleDeck() {
 
 	p.mutex.Lock()
 
-	rand.Shuffle(len(p.deck), func(i, j int) { p.deck[i], p.deck[j] = p.deck[j], p.deck[i] })
+	p.match.rng.Shuffle(len(p.deck), func(i, j int) { p.deck[i], p.deck[j] = p.deck[j], p.deck[i] })
 
 	p.mutex.Unlock()
 
