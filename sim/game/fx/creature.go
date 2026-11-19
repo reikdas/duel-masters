@@ -172,7 +172,7 @@ func Creature(card *match.Card, ctx *match.Context) {
 					ctx.Match,
 					fmt.Sprintf("Do you CONFIRM to Attack your Opponent? This is irreversible and cannot be cancelled afterwards.\r\nYou will be prompted to select shields after %s's effect will be resolved.", card.Name),
 				) {
-					if !tapCardAndConfirmAttack(card, ctx, true, func() { event.Confirmed = true }) {
+					if !tapCardAndConfirmAttack(card, ctx, nil, func() { event.Confirmed = true }) {
 						return
 					}
 
@@ -188,7 +188,7 @@ func Creature(card *match.Card, ctx *match.Context) {
 				selectShieldsCtx := match.NewContext(ctx.Match, &selectShieldsEvent)
 				ctx.Match.HandleFx(selectShieldsCtx)
 
-				if !tapCardAndConfirmAttack(card, selectShieldsCtx, true, func() { event.Confirmed = true }) {
+				if !tapCardAndConfirmAttack(card, selectShieldsCtx, nil, func() { event.Confirmed = true }) {
 					return
 				}
 
@@ -288,7 +288,7 @@ func Creature(card *match.Card, ctx *match.Context) {
 
 			c := attackedCreatures[0]
 
-			if !tapCardAndConfirmAttack(card, ctx, false, func() { event.Confirmed = true }) {
+			if !tapCardAndConfirmAttack(card, ctx, c, func() { event.Confirmed = true }) {
 				return
 			}
 
@@ -635,11 +635,12 @@ func handleBattle(ctx *match.Context, winner *match.Card, winnerPower int, loose
 	}
 }
 
-// tapCardAndConfirmAttack taps the attacker and fires AttackConfirmed. confirm is called
-// once the attack is beyond cancelling, which is what tells Match to enter the attack step.
-// It is checked after the whole AttackConfirmed traversal so that the outcome cannot depend
-// on where a prevention effect happens to sit in the handler order.
-func tapCardAndConfirmAttack(card *match.Card, ctx *match.Context, attackPlayer bool, confirm func()) bool {
+// tapCardAndConfirmAttack taps the attacker, reports the attack in the chat and fires
+// AttackConfirmed. target is the creature attacked, or nil for an attack on the opponent.
+// confirm is called once the attack is beyond cancelling, which is what tells Match to
+// enter the attack step. It is checked after the whole AttackConfirmed traversal so that
+// the outcome cannot depend on where a prevention effect happens to sit in the handler order.
+func tapCardAndConfirmAttack(card *match.Card, ctx *match.Context, target *match.Card, confirm func()) bool {
 	if ctx.Cancelled() {
 		return false
 	}
@@ -649,6 +650,16 @@ func tapCardAndConfirmAttack(card *match.Card, ctx *match.Context, attackPlayer 
 	// Broadcast state so that opponent can see that this card is tapped if they get any shield triggers
 	ctx.Match.BroadcastState()
 
+	// Name the attacker before anything the attack sets off, such as blocks and shield
+	// triggers, asks the opponent a question. An opponent whose creatures are all tapped
+	// can't tell from the board which one just attacked.
+	attacked := ctx.Match.Opponent(card.Player).Username()
+	if target != nil {
+		attacked = fmt.Sprintf("%s (%v)", target.Name, ctx.Match.GetPower(target, false))
+	}
+	ctx.Match.ReportActionInChat(card.Player, fmt.Sprintf("%s (%v) is attacking %s", card.Name, ctx.Match.GetPower(card, true), attacked))
+
+	attackPlayer := target == nil
 	confirmCtx := match.NewContext(ctx.Match, &match.AttackConfirmed{CardID: card.ID, Player: attackPlayer, Creature: !attackPlayer})
 	ctx.Match.HandleFx(confirmCtx)
 
