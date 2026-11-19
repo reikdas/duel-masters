@@ -883,6 +883,23 @@ func (m *Match) HandleFx(ctx *Context) {
 
 }
 
+// openAction sends player a prompt, and keeps it to send again if they
+// reconnect before answering. It first sends both players the board as it
+// stands: an effect can open a prompt partway through an action, before the
+// state that action would have broadcast at its end, and the player should
+// see what has happened so far, such as the creature whose arrival asks them
+// a question.
+func (m *Match) openAction(player *Player, msg any) {
+	m.BroadcastState()
+
+	player.ActionState = PlayerActionState{
+		resolved: false,
+		data:     msg,
+	}
+
+	m.PlayerRef(player).Socket.Send(msg)
+}
+
 // NewAction prompts the user to make a selection of the specified []Cards
 func (m *Match) NewAction(player *Player, cards []*Card, minSelections int, maxSelections int, text string, cancellable bool) {
 	m.NewActionFullList(player, cards, minSelections, maxSelections, text, cancellable, nil)
@@ -900,12 +917,7 @@ func (m *Match) NewActionFullList(player *Player, cards []*Card, minSelections i
 		UnselectableCards: denormalizeCards(unselectableCards, false),
 	}
 
-	player.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(player).Socket.Send(msg)
+	m.openAction(player, msg)
 
 }
 
@@ -921,12 +933,7 @@ func (m *Match) NewBacksideAction(player *Player, cards []*Card, minSelections i
 		Cancellable:   cancellable,
 	}
 
-	player.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(player).Socket.Send(msg)
+	m.openAction(player, msg)
 
 }
 
@@ -957,12 +964,7 @@ func (m *Match) newMultipartActionBase(player *Player, cards map[string][]*Card,
 		Cancellable:   cancellable,
 	}
 
-	player.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(player).Socket.Send(msg)
+	m.openAction(player, msg)
 
 }
 
@@ -977,12 +979,7 @@ func (m *Match) NewCountAction(player *Player, text string, minSelections int, m
 		MaxSelections: maxSelections,
 	}
 
-	player.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(player).Socket.Send(msg)
+	m.openAction(player, msg)
 
 }
 
@@ -995,12 +992,7 @@ func (m *Match) NewQuestionAction(player *Player, text string) {
 		Text:       text,
 	}
 
-	player.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(player).Socket.Send(msg)
+	m.openAction(player, msg)
 
 }
 
@@ -1013,12 +1005,7 @@ func (m *Match) NewOrderAction(player *Player, cards []*Card, text string) {
 		Text:       text,
 	}
 
-	player.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(player).Socket.Send(msg)
+	m.openAction(player, msg)
 
 }
 
@@ -1032,12 +1019,7 @@ func (m *Match) NewMultipleChoiceQuestionAction(player *Player, text string, cho
 		Choices:    choices,
 	}
 
-	player.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(player).Socket.Send(msg)
+	m.openAction(player, msg)
 
 }
 
@@ -1052,12 +1034,7 @@ func (m *Match) NewMultipleChoiceSearchableAction(player *Player, text string, c
 		Choices:    choices,
 	}
 
-	player.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(player).Socket.Send(msg)
+	m.openAction(player, msg)
 
 }
 
@@ -1103,12 +1080,7 @@ func (m *Match) ShowCardsNonDismissible(p *Player, message string, cards []strin
 		Cards:   cards,
 	}
 
-	p.ActionState = PlayerActionState{
-		resolved: false,
-		data:     msg,
-	}
-
-	m.PlayerRef(p).Socket.Send(msg)
+	m.openAction(p, msg)
 
 	defer m.CloseAction(p)
 

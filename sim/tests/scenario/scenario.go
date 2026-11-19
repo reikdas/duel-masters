@@ -686,6 +686,17 @@ func (s *TestScenario) MessageHeaders(player *match.PlayerReference, since int) 
 	return headers, nil
 }
 
+// Messages returns every message sent to the player since position since, as
+// the JSON the client receives, for tests that need more of a message than
+// its header.
+func (s *TestScenario) Messages(player *match.PlayerReference, since int) ([]string, error) {
+	conn, err := s.connectionFor(player)
+	if err != nil {
+		return nil, err
+	}
+	return conn.JSONMessagesSince(since), nil
+}
+
 // Warnings returns the text of every "warn" message sent to the player since
 // position since, so tests can assert how often an effect warned and why.
 func (s *TestScenario) Warnings(player *match.PlayerReference, since int) ([]string, error) {
